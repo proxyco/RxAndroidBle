@@ -29,6 +29,24 @@ import static com.polidea.rxandroidble2.internal.connection.ConnectionComponent.
 public abstract class ConnectionModule {
 
     public static final String OPERATION_TIMEOUT = "operation-timeout";
+    public static final String CONNECT_TIMEOUT = "connect-timeout";
+    final boolean autoConnect;
+    final boolean suppressOperationCheck;
+    private final Timeout operationTimeout;
+    private final Timeout connectTimeout;
+
+    ConnectionModule(ConnectionSetup connectionSetup) {
+        this.autoConnect = connectionSetup.autoConnect;
+        this.suppressOperationCheck = connectionSetup.suppressOperationCheck;
+        this.operationTimeout = connectionSetup.operationTimeout;
+        this.connectTimeout = connectionSetup.connectTimeout;
+    }
+
+    @ConnectionScope
+    @Provides @Named(AUTO_CONNECT) boolean provideAutoConnect() {
+        return autoConnect;
+    }
+
 
     @Provides
     @Named(OPERATION_TIMEOUT)
@@ -40,6 +58,13 @@ public abstract class ConnectionModule {
     }
 
     @Provides
+    @Named(CONNECT_TIMEOUT)
+    TimeoutConfiguration providesConnectTimeoutConf(@Named(ClientComponent.NamedSchedulers.TIMEOUT) Scheduler timeoutScheduler) {
+        return new TimeoutConfiguration(connectTimeout.timeout, connectTimeout.timeUnit, timeoutScheduler);
+    }
+
+    @Provides
+    IllegalOperationHandler provideIllegalOperationHandler(
     static IllegalOperationHandler provideIllegalOperationHandler(
             @Named(SUPPRESS_OPERATION_CHECKS) boolean suppressOperationCheck,
             Provider<LoggingIllegalOperationHandler> loggingIllegalOperationHandlerProvider,
