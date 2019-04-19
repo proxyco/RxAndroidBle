@@ -33,8 +33,8 @@ import io.reactivex.observers.DisposableSingleObserver;
 
 import static com.polidea.rxandroidble2.RxBleConnection.RxBleConnectionState.CONNECTED;
 import static com.polidea.rxandroidble2.RxBleConnection.RxBleConnectionState.CONNECTING;
+import static com.polidea.rxandroidble2.internal.DeviceModule.CONNECT_TIMEOUT;
 import static com.polidea.rxandroidble2.internal.connection.ConnectionComponent.NamedBooleans.AUTO_CONNECT;
-import static com.polidea.rxandroidble2.internal.connection.ConnectionModule.CONNECT_TIMEOUT;
 import static com.polidea.rxandroidble2.internal.util.DisposableUtil.disposableSingleObserverFromEmitter;
 
 public class ConnectOperation extends QueueOperation<BluetoothGatt> {
