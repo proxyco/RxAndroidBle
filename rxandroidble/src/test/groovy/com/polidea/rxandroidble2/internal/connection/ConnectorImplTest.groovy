@@ -32,6 +32,7 @@ class ConnectorImplTest extends Specification {
         mockConnectionComponentBuilder.autoConnect(_) >> mockConnectionComponentBuilder
         mockConnectionComponentBuilder.suppressOperationChecks(_) >> mockConnectionComponentBuilder
         mockConnectionComponentBuilder.operationTimeout(_) >> mockConnectionComponentBuilder
+        mockConnectionComponentBuilder.connectionTimeout(_) >> mockConnectionComponentBuilder
         mockConnectionComponentBuilder.build() >> mockConnectionComponent
         mockConnectionComponent.connectOperation() >> mockConnect
         mockConnectionComponent.gattCallback() >> mockCallback
@@ -56,6 +57,7 @@ class ConnectorImplTest extends Specification {
                 .setAutoConnect(autoConnect)
                 .setSuppressIllegalOperationCheck(suppressIllegalOperations)
                 .setOperationTimeout(operationTimeout)
+                .setConnectionTimeout(connectionTimeout)
                 .build()
 
         when:
@@ -69,6 +71,9 @@ class ConnectorImplTest extends Specification {
 
         and:
         1 * mockConnectionComponentBuilder.operationTimeout(operationTimeout) >> mockConnectionComponentBuilder
+
+        and:
+        1 * mockConnectionComponentBuilder.connectionTimeout(connectionTimeout) >> mockConnectionComponentBuilder
 
         where:
         [autoConnect, suppressIllegalOperations] << [[true, false], [true, false]].combinations()

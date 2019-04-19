@@ -29,6 +29,15 @@ import static com.polidea.rxandroidble2.internal.connection.ConnectionComponent.
 public abstract class ConnectionModule {
 
     public static final String OPERATION_TIMEOUT = "operation-timeout";
+    public static final String CONNECT_TIMEOUT = "connect-timeout";
+
+    @Provides
+    @Named(CONNECT_TIMEOUT)
+    static TimeoutConfiguration providesConnectTimeoutConf(
+      @Named(ClientComponent.NamedSchedulers.TIMEOUT) Scheduler timeoutScheduler,
+      Timeout connectTimeout) {
+        return new TimeoutConfiguration(connectTimeout.timeout, connectTimeout.timeUnit, timeoutScheduler);
+    }
 
     @Provides
     @Named(OPERATION_TIMEOUT)

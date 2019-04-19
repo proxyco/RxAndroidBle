@@ -6,6 +6,8 @@ import com.polidea.rxandroidble2.internal.operations.ConnectOperation;
 import bleshadow.dagger.BindsInstance;
 import bleshadow.dagger.Subcomponent;
 import bleshadow.javax.inject.Named;
+import dagger.BindsInstance;
+
 import java.util.Set;
 
 @ConnectionScope
@@ -35,6 +37,9 @@ public interface ConnectionComponent {
 
         @BindsInstance
         Builder operationTimeout(Timeout operationTimeout);
+
+        @BindsInstance
+        Builder connectionTimeout(Timeout connectionTimeout);
 
         ConnectionComponent build();
     }
