@@ -3,6 +3,7 @@ package com.polidea.rxandroidble2.internal;
 import android.bluetooth.BluetoothDevice;
 
 import com.jakewharton.rxrelay2.BehaviorRelay;
+import com.polidea.rxandroidble2.ClientComponent;
 import com.polidea.rxandroidble2.ClientComponent.NamedSchedulers;
 import com.polidea.rxandroidble2.RxBleConnection;
 import com.polidea.rxandroidble2.RxBleDevice;
@@ -36,12 +37,6 @@ public abstract class DeviceModule {
     @Provides
     static BluetoothDevice provideBluetoothDevice(@Named(MAC_ADDRESS) String macAddress, RxBleAdapterWrapper adapterWrapper) {
         return adapterWrapper.getRemoteDevice(macAddress);
-    }
-
-    @Provides
-    @Named(MAC_ADDRESS)
-    String provideMacAddress() {
-        return macAddress;
     }
 
     @Provides
