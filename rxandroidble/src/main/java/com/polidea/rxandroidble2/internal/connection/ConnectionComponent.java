@@ -6,7 +6,6 @@ import com.polidea.rxandroidble2.internal.operations.ConnectOperation;
 import bleshadow.dagger.BindsInstance;
 import bleshadow.dagger.Subcomponent;
 import bleshadow.javax.inject.Named;
-
 import java.util.Set;
 
 @ConnectionScope
