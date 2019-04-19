@@ -7,6 +7,7 @@ import com.polidea.rxandroidble2.ClientComponent;
 import com.polidea.rxandroidble2.ClientComponent.NamedSchedulers;
 import com.polidea.rxandroidble2.RxBleConnection;
 import com.polidea.rxandroidble2.RxBleDevice;
+import com.polidea.rxandroidble2.Timeout;
 import com.polidea.rxandroidble2.internal.connection.ConnectionComponent;
 import com.polidea.rxandroidble2.internal.connection.ConnectionStateChangeListener;
 import com.polidea.rxandroidble2.internal.connection.Connector;
@@ -41,9 +42,12 @@ public abstract class DeviceModule {
 
     @Provides
     @Named(CONNECT_TIMEOUT)
-    static TimeoutConfiguration providesConnectTimeoutConf(@Named(ClientComponent.NamedSchedulers.TIMEOUT) Scheduler timeoutScheduler) {
-        return new TimeoutConfiguration(DEFAULT_CONNECT_TIMEOUT, TimeUnit.SECONDS, timeoutScheduler);
+    static TimeoutConfiguration providesConnectTimeoutConf(
+      @Named(ClientComponent.NamedSchedulers.TIMEOUT) Scheduler timeoutScheduler,
+      Timeout connectTimeout) {
+        return new TimeoutConfiguration(connectTimeout.timeout, connectTimeout.timeUnit, timeoutScheduler);
     }
+
 
     @Provides
     @Named(DISCONNECT_TIMEOUT)
