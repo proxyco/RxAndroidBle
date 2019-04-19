@@ -44,7 +44,6 @@ public class ConnectorImpl implements Connector {
                         .autoConnect(options.autoConnect)
                         .suppressOperationChecks(options.suppressOperationCheck)
                         .operationTimeout(options.operationTimeout)
-                        .connectionTimeout(options.connectionTimeout)
                         .build();
 
                 final Set<ConnectionSubscriptionWatcher> connSubWatchers = connectionComponent.connectionSubscriptionWatchers();

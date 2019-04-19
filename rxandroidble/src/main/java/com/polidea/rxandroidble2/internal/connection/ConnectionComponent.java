@@ -38,9 +38,6 @@ public interface ConnectionComponent {
         @BindsInstance
         Builder operationTimeout(Timeout operationTimeout);
 
-        @BindsInstance
-        Builder connectionTimeout(Timeout connectionTimeout);
-
         ConnectionComponent build();
     }
 
