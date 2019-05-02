@@ -128,12 +128,6 @@ class RxBleClientImpl extends RxBleClient {
                         .unsubscribeOn(bluetoothInteractionScheduler)
                         .compose(scanSetup.scanOperationBehaviourEmulatorTransformer)
                         .map(internalToExternalScanResultMapFunction)
-                        .doOnNext(new Consumer<ScanResult>() {
-                            @Override
-                            public void accept(ScanResult scanResult) {
-                                RxBleLog.i("%s", scanResult);
-                            }
-                        })
                         .mergeWith(RxBleClientImpl.this.<ScanResult>bluetoothAdapterOffExceptionObservable());
             }
         });
