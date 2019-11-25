@@ -336,7 +336,7 @@ Keep in mind that these are only _samples_ to show how the library can be used. 
 ### Gradle
 
 ```groovy
-implementation "com.polidea.rxandroidble2:rxandroidble:1.10.4"
+implementation "com.polidea.rxandroidble2:rxandroidble:1.10.5"
 ```
 ### Maven
 
@@ -344,7 +344,7 @@ implementation "com.polidea.rxandroidble2:rxandroidble:1.10.4"
 <dependency>
   <groupId>com.polidea.rxandroidble2</groupId>
   <artifactId>rxandroidble</artifactId>
-  <version>1.10.4</version>
+  <version>1.10.5</version>
   <type>aar</type>
 </dependency>
 ```
@@ -418,3 +418,7 @@ Want to talk about it? Join our discussion on [Gitter](https://gitter.im/RxBLELi
 ## Maintained by
 
 [![Polidea](https://raw.githubusercontent.com/Polidea/RxAndroidBle/master/site/polidea_logo.png "Tailored software services including concept, design, development and testing")](http://www.polidea.com)
+
+## Publish
+Clean & Build the project locally with Android studio, then run
+./gradlew publish
