@@ -44,8 +44,6 @@ public class ConnectionSetup {
         private boolean autoConnect = false;
         private boolean suppressOperationCheck = false;
         private Timeout operationTimeout = new Timeout(DEFAULT_OPERATION_TIMEOUT, TimeUnit.SECONDS);
-
-
         /**
          * Autoconnect concept may be misleading at first glance. In cases when the BLE device is available and it is advertising constantly
          * you won't need to use autoconnect. Use autoconnect for connections where the BLE device is not advertising at
