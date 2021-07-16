@@ -32,7 +32,7 @@ public abstract class DeviceModule {
 
     private static final int DEFAULT_OPERATION_TIMEOUT = 30;
     private static final int DEFAULT_DISCONNECT_TIMEOUT = 10;
-    private static final int DEFAULT_CONNECT_TIMEOUT = 35;
+    private static final int DEFAULT_CONNECT_TIMEOUT = 5;
 
     @Provides
     static BluetoothDevice provideBluetoothDevice(@Named(MAC_ADDRESS) String macAddress, RxBleAdapterWrapper adapterWrapper) {
