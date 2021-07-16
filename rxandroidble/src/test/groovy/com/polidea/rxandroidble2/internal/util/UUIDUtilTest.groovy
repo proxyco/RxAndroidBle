@@ -1,8 +1,12 @@
 package com.polidea.rxandroidble2.internal.util
 
-import spock.lang.Specification
+import android.os.Build
+import com.polidea.rxandroidble2.BuildConfig
+import hkhc.electricspock.ElectricSpecification
+import org.robolectric.annotation.Config
 
-class UUIDUtilTest extends Specification {
+@Config(manifest = Config.NONE, constants = BuildConfig, sdk = Build.VERSION_CODES.LOLLIPOP)
+class UUIDUtilTest extends ElectricSpecification {
 
     static final UNKNOWN_DATA_TYPE = 0xfa
     UUIDUtil objectUnderTest = new UUIDUtil()

@@ -1,14 +1,14 @@
 package com.polidea.rxandroidble2.scan;
 
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.os.Parcel;
 import android.os.ParcelUuid;
 import android.os.Parcelable;
 import androidx.annotation.Nullable;
+
+import com.polidea.rxandroidble2.internal.ScanResultInterface;
 import com.polidea.rxandroidble2.internal.logger.LoggerUtil;
-import com.polidea.rxandroidble2.internal.scan.RxBleInternalScanResult;
 import com.polidea.rxandroidble2.internal.scan.ScanFilterInterface;
 import java.util.Arrays;
 import java.util.List;
@@ -46,6 +46,11 @@ import java.util.UUID;
     private final ParcelUuid mServiceUuidMask;
 
     @Nullable
+    private final ParcelUuid mServiceSolicitationUuid;
+    @Nullable
+    private final ParcelUuid mServiceSolicitationUuidMask;
+
+    @Nullable
     private final ParcelUuid mServiceDataUuid;
     @Nullable
     private final byte[] mServiceData;
@@ -60,13 +65,16 @@ import java.util.UUID;
     private static final ScanFilter EMPTY = new ScanFilter.Builder().build();
 
 
-    private ScanFilter(String name, String deviceAddress, ParcelUuid uuid,
-                       ParcelUuid uuidMask, ParcelUuid serviceDataUuid,
-                       byte[] serviceData, byte[] serviceDataMask,
-                       int manufacturerId, byte[] manufacturerData, byte[] manufacturerDataMask) {
+    ScanFilter(@Nullable String name, @Nullable String deviceAddress, @Nullable ParcelUuid uuid,
+               @Nullable ParcelUuid uuidMask, @Nullable ParcelUuid solicitationUuid,
+               @Nullable ParcelUuid solicitationUuidMask, @Nullable ParcelUuid serviceDataUuid,
+               @Nullable byte[] serviceData, @Nullable byte[] serviceDataMask,
+               int manufacturerId, @Nullable byte[] manufacturerData, @Nullable byte[] manufacturerDataMask) {
         mDeviceName = name;
         mServiceUuid = uuid;
         mServiceUuidMask = uuidMask;
+        mServiceSolicitationUuid = solicitationUuid;
+        mServiceSolicitationUuidMask = solicitationUuidMask;
         mDeviceAddress = deviceAddress;
         mServiceDataUuid = serviceDataUuid;
         mServiceData = serviceData;
@@ -97,6 +105,14 @@ import java.util.UUID;
             dest.writeInt(mServiceUuidMask == null ? 0 : 1);
             if (mServiceUuidMask != null) {
                 dest.writeParcelable(mServiceUuidMask, flags);
+            }
+        }
+        dest.writeInt(mServiceSolicitationUuid == null ? 0 : 1);
+        if (mServiceSolicitationUuid != null) {
+            dest.writeParcelable(mServiceSolicitationUuid, flags);
+            dest.writeInt(mServiceSolicitationUuidMask == null ? 0 : 1);
+            if (mServiceSolicitationUuidMask != null) {
+                dest.writeParcelable(mServiceSolicitationUuidMask, flags);
             }
         }
         dest.writeInt(mServiceDataUuid == null ? 0 : 1);
@@ -155,6 +171,17 @@ import java.util.UUID;
                     ParcelUuid uuidMask = in.readParcelable(
                             ParcelUuid.class.getClassLoader());
                     builder.setServiceUuid(uuid, uuidMask);
+                }
+            }
+            if (in.readInt() == 1) {
+                ParcelUuid solicitationUuid = in.readParcelable(
+                        ParcelUuid.class.getClassLoader());
+                builder.setServiceSolicitationUuid(solicitationUuid);
+                if (in.readInt() == 1) {
+                    ParcelUuid solicitationUuidMask = in.readParcelable(
+                            ParcelUuid.class.getClassLoader());
+                    builder.setServiceSolicitationUuid(solicitationUuid,
+                            solicitationUuidMask);
                 }
             }
             if (in.readInt() == 1) {
@@ -217,6 +244,21 @@ import java.util.UUID;
         return mServiceUuidMask;
     }
 
+    /**
+     * Returns the filter set on the service Solicitation uuid.
+     */
+    @Nullable
+    public ParcelUuid getServiceSolicitationUuid() {
+        return mServiceSolicitationUuid;
+    }
+    /**
+     * Returns the filter set on the service Solicitation uuid mask.
+     */
+    @Nullable
+    public ParcelUuid getServiceSolicitationUuidMask() {
+        return mServiceSolicitationUuidMask;
+    }
+
     @Nullable
     public String getDeviceAddress() {
         return mDeviceAddress;
@@ -258,36 +300,41 @@ import java.util.UUID;
      * Check if the scan filter matches a {@code scanResult}. A scan result is considered as a match
      * if it matches all the field filters.
      */
-    public boolean matches(RxBleInternalScanResult scanResult) {
+    public boolean matches(ScanResultInterface scanResult) {
         if (scanResult == null) {
             return false;
         }
-        BluetoothDevice device = scanResult.getBluetoothDevice();
+        String address = scanResult.getAddress();
         // Device match.
-        if (mDeviceAddress != null
-                && (device == null || !mDeviceAddress.equals(device.getAddress()))) {
+        if (mDeviceAddress != null && !mDeviceAddress.equals(address)) {
             return false;
         }
 
         ScanRecord scanRecord = scanResult.getScanRecord();
 
-        // Scan record is null but there exist filters on it.
-        if (scanRecord == null
-                && (mDeviceName != null || mServiceUuid != null || mManufacturerData != null
-                || mServiceData != null)) {
-            return false;
-        }
-
         // Local name match.
         if (mDeviceName != null) {
-            if (!(mDeviceName.equals(scanRecord.getDeviceName()) || mDeviceName.equals(device.getName()))) {
+            if (!mDeviceName.equals(scanResult.getDeviceName())
+                    && (scanRecord == null || !mDeviceName.equals(scanRecord.getDeviceName()))) {
                 return false;
             }
+        }
+
+        // if scan record is null we cannot continue. For filter to pass, remaining filter properties must be empty
+        if (scanRecord == null) {
+            return mServiceUuid == null && mManufacturerData == null && mServiceData == null;
         }
 
         // UUID match.
         if (mServiceUuid != null && !matchesServiceUuids(mServiceUuid, mServiceUuidMask,
                 scanRecord.getServiceUuids())) {
+            return false;
+        }
+
+        // solicitation UUID match.
+        if (mServiceSolicitationUuid != null && !matchesServiceSolicitationUuids(
+                mServiceSolicitationUuid, mServiceSolicitationUuidMask,
+                scanRecord.getServiceSolicitationUuids())) {
             return false;
         }
 
@@ -311,8 +358,8 @@ import java.util.UUID;
     }
 
     // Check if the uuid pattern is contained in a list of parcel uuids.
-    private boolean matchesServiceUuids(ParcelUuid uuid, ParcelUuid parcelUuidMask,
-                                        List<ParcelUuid> uuids) {
+    private static boolean matchesServiceUuids(ParcelUuid uuid, ParcelUuid parcelUuidMask,
+                                               List<ParcelUuid> uuids) {
         if (uuid == null) {
             return true;
         }
@@ -330,7 +377,7 @@ import java.util.UUID;
     }
 
     // Check if the uuid pattern matches the particular service uuid.
-    private boolean matchesServiceUuid(UUID uuid, UUID mask, UUID data) {
+    private static boolean matchesServiceUuid(UUID uuid, UUID mask, UUID data) {
         if (mask == null) {
             return uuid.equals(data);
         }
@@ -342,8 +389,31 @@ import java.util.UUID;
                 == (data.getMostSignificantBits() & mask.getMostSignificantBits()));
     }
 
+    /**
+     * Check if the solicitation uuid pattern is contained in a list of parcel uuids.
+     *
+     */
+    private static boolean matchesServiceSolicitationUuids(ParcelUuid solicitationUuid,
+                                                           ParcelUuid parcelSolicitationUuidMask, List<ParcelUuid> solicitationUuids) {
+        if (solicitationUuid == null) {
+            return true;
+        }
+        if (solicitationUuids == null) {
+            return false;
+        }
+        for (ParcelUuid parcelSolicitationUuid : solicitationUuids) {
+            UUID solicitationUuidMask = parcelSolicitationUuidMask == null
+                    ? null : parcelSolicitationUuidMask.getUuid();
+            if (matchesServiceUuid(solicitationUuid.getUuid(), solicitationUuidMask,
+                    parcelSolicitationUuid.getUuid())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     // Check whether the data pattern matches the parsed data.
-    private boolean matchesPartialData(byte[] data, byte[] dataMask, byte[] parsedData) {
+    private static boolean matchesPartialData(byte[] data, byte[] dataMask, byte[] parsedData) {
         if (parsedData == null || parsedData.length < data.length) {
             return false;
         }
@@ -369,6 +439,12 @@ import java.util.UUID;
                 + ", " + LoggerUtil.commonMacMessage(mDeviceAddress)
                 + ", mUuid=" + (mServiceUuid == null ? null : LoggerUtil.getUuidToLog(mServiceUuid.getUuid()))
                 + ", mUuidMask=" + (mServiceUuidMask == null ? null : LoggerUtil.getUuidToLog(mServiceUuidMask.getUuid()))
+                + ", mSolicitedUuid=" + (mServiceSolicitationUuid == null
+                    ? null
+                    : LoggerUtil.getUuidToLog(mServiceSolicitationUuid.getUuid()))
+                + ", mSolicitedUuidMask=" + (mServiceSolicitationUuidMask == null
+                    ? null
+                    : LoggerUtil.getUuidToLog(mServiceSolicitationUuidMask.getUuid()))
                 + ", mServiceDataUuid=" + (mServiceDataUuid == null ? null : LoggerUtil.getUuidToLog(mServiceDataUuid.getUuid()))
                 + ", mServiceData=" + Arrays.toString(mServiceData)
                 + ", mServiceDataMask=" + Arrays.toString(mServiceDataMask)
@@ -389,7 +465,9 @@ import java.util.UUID;
                 Arrays.hashCode(mServiceData),
                 Arrays.hashCode(mServiceDataMask),
                 mServiceUuid,
-                mServiceUuidMask
+                mServiceUuidMask,
+                mServiceSolicitationUuid,
+                mServiceSolicitationUuidMask
         });
     }
 
@@ -411,7 +489,9 @@ import java.util.UUID;
                 && deepEquals(mServiceData, other.mServiceData)
                 && deepEquals(mServiceDataMask, other.mServiceDataMask)
                 && equals(mServiceUuid, other.mServiceUuid)
-                && equals(mServiceUuidMask, other.mServiceUuidMask);
+                && equals(mServiceUuidMask, other.mServiceUuidMask)
+                && equals(mServiceSolicitationUuid, other.mServiceSolicitationUuid)
+                && equals(mServiceSolicitationUuidMask, other.mServiceSolicitationUuidMask);
     }
 
     /**
@@ -453,7 +533,10 @@ import java.util.UUID;
         private String mDeviceAddress;
 
         private ParcelUuid mServiceUuid;
-        private ParcelUuid mUuidMask;
+        private ParcelUuid mServiceUuidMask;
+
+        private ParcelUuid mServiceSolicitationUuid;
+        private ParcelUuid mServiceSolicitationUuidMask;
 
         private ParcelUuid mServiceDataUuid;
         private byte[] mServiceData;
@@ -492,7 +575,7 @@ import java.util.UUID;
          */
         public ScanFilter.Builder setServiceUuid(ParcelUuid serviceUuid) {
             mServiceUuid = serviceUuid;
-            mUuidMask = null; // clear uuid mask
+            mServiceUuidMask = null; // clear uuid mask
             return this;
         }
 
@@ -505,11 +588,44 @@ import java.util.UUID;
          *             {@code uuidMask} is not {@code null}.
          */
         public ScanFilter.Builder setServiceUuid(ParcelUuid serviceUuid, ParcelUuid uuidMask) {
-            if (mUuidMask != null && mServiceUuid == null) {
+            if (mServiceUuidMask != null && mServiceUuid == null) {
                 throw new IllegalArgumentException("uuid is null while uuidMask is not null!");
             }
             mServiceUuid = serviceUuid;
-            mUuidMask = uuidMask;
+            mServiceUuidMask = uuidMask;
+            return this;
+        }
+
+        /**
+         * Set filter on service solicitation uuid.
+         */
+        public ScanFilter.Builder setServiceSolicitationUuid(ParcelUuid solicitedServiceUuid) {
+            mServiceSolicitationUuid = solicitedServiceUuid;
+            mServiceSolicitationUuidMask = null; // clear uuid mask
+            return this;
+        }
+
+        /**
+         * Set filter on partial service Solicitation uuid. The {@code SolicitationUuidMask} is the
+         * bit mask for the {@code serviceSolicitationUuid}. Set any bit in the mask to 1 to
+         * indicate a match is needed for the bit in {@code serviceSolicitationUuid}, and 0 to
+         * ignore that bit.
+         *
+         * @param serviceSolicitationUuid can only be null if solicitationUuidMask is null.
+         * @param solicitationUuidMask can be null or a mask with no restriction.
+         *
+         * @throws IllegalArgumentException If {@code serviceSolicitationUuid} is {@code null} but
+         *             {@code serviceSolicitationUuidMask} is not {@code null}.
+         */
+        public Builder setServiceSolicitationUuid(
+                @Nullable ParcelUuid serviceSolicitationUuid,
+                @Nullable ParcelUuid solicitationUuidMask) {
+            if (solicitationUuidMask != null && serviceSolicitationUuid == null) {
+                throw new IllegalArgumentException(
+                        "SolicitationUuid is null while SolicitationUuidMask is not null!");
+            }
+            mServiceSolicitationUuid = serviceSolicitationUuid;
+            mServiceSolicitationUuidMask = solicitationUuidMask;
             return this;
         }
 
@@ -619,7 +735,8 @@ import java.util.UUID;
          */
         public ScanFilter build() {
             return new ScanFilter(mDeviceName, mDeviceAddress,
-                    mServiceUuid, mUuidMask,
+                    mServiceUuid, mServiceUuidMask,
+                    mServiceSolicitationUuid, mServiceSolicitationUuidMask,
                     mServiceDataUuid, mServiceData, mServiceDataMask,
                     mManufacturerId, mManufacturerData, mManufacturerDataMask);
         }

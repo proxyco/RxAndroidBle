@@ -2,34 +2,39 @@ package com.polidea.rxandroidble2
 
 import android.bluetooth.BluetoothDevice
 import android.content.Context
+import android.os.Build
 import com.polidea.rxandroidble2.exceptions.BleScanException
+
 import com.polidea.rxandroidble2.internal.RxBleDeviceProvider
 import com.polidea.rxandroidble2.internal.operations.Operation
 import com.polidea.rxandroidble2.internal.scan.*
 import com.polidea.rxandroidble2.internal.serialization.ClientOperationQueue
+import com.polidea.rxandroidble2.internal.util.CheckerLocationPermission
 import com.polidea.rxandroidble2.internal.util.ClientStateObservable
-import com.polidea.rxandroidble2.internal.util.UUIDUtil
+import com.polidea.rxandroidble2.internal.util.ScanRecordParser
 import com.polidea.rxandroidble2.scan.BackgroundScanner
 import com.polidea.rxandroidble2.scan.ScanSettings
+import hkhc.electricspock.ElectricSpecification
 import io.reactivex.Observable
 import io.reactivex.ObservableSource
 import io.reactivex.ObservableTransformer
 import io.reactivex.annotations.NonNull
 import io.reactivex.observers.TestObserver
 import io.reactivex.schedulers.TestScheduler
-import spock.lang.Specification
+import org.robolectric.annotation.Config
 import spock.lang.Unroll
 
 import static com.polidea.rxandroidble2.exceptions.BleScanException.*
 
 @SuppressWarnings("GrDeprecatedAPIUsage")
-class RxBleClientTest extends Specification {
+@Config(manifest = Config.NONE, constants = BuildConfig, sdk = Build.VERSION_CODES.LOLLIPOP)
+class RxBleClientTest extends ElectricSpecification {
 
     BackgroundScanner backgroundScanner = Mock(BackgroundScanner)
     DummyOperationQueue dummyQueue = new DummyOperationQueue()
     RxBleClient objectUnderTest
     Context contextMock = Mock Context
-    UUIDUtil uuidParserSpy = Spy UUIDUtil
+    ScanRecordParser scanRecordParserSpy = Spy ScanRecordParser
     MockRxBleAdapterWrapper bleAdapterWrapperSpy = Spy MockRxBleAdapterWrapper
     MockRxBleAdapterStateObservable adapterStateObservable = Spy MockRxBleAdapterStateObservable
     MockLocationServicesStatus locationServicesStatusMock = Spy MockLocationServicesStatus
@@ -48,6 +53,7 @@ class RxBleClientTest extends Specification {
     ScanSetup mockScanSetup = new ScanSetup(mockOperationScan, mockObservableTransformer)
     ScanPreconditionsVerifier mockScanPreconditionVerifier = Mock ScanPreconditionsVerifier
     InternalToExternalScanResultConverter mockMapper = Mock InternalToExternalScanResultConverter
+    CheckerLocationPermission mockCheckerLocationPermission = Mock CheckerLocationPermission
     private static someUUID = UUID.randomUUID()
     private static otherUUID = UUID.randomUUID()
     private static Date suggestedDateToRetry = new Date()
@@ -74,7 +80,7 @@ class RxBleClientTest extends Specification {
                 bleAdapterWrapperSpy,
                 queue,
                 adapterStateObservable.asObservable(),
-                uuidParserSpy,
+                scanRecordParserSpy,
                 locationServicesStatusMock,
                 mockLazyClientStateObservable,
                 mockDeviceProvider,
@@ -83,7 +89,8 @@ class RxBleClientTest extends Specification {
                 mockMapper,
                 new TestScheduler(),
                 Mock(ClientComponent.ClientComponentFinalizer),
-                backgroundScanner
+                backgroundScanner,
+                mockCheckerLocationPermission
         )
     }
 
@@ -409,7 +416,7 @@ class RxBleClientTest extends Specification {
     def "should emit devices only if matching filter (#description)"() {
         given:
         addressList.each { bluetoothDeviceDiscovered deviceMac: it, rssi: 0, scanRecord: [] as byte[] }
-        uuidParserSpy.extractUUIDs(_) >>> publicServices
+        scanRecordParserSpy.extractUUIDs(_) >>> publicServices
 
         when:
         TestObserver<RxBleScanResult> testSubscriber = objectUnderTest.scanBleDevices(filter as UUID[]).test()
@@ -443,7 +450,7 @@ class RxBleClientTest extends Specification {
         def secondUUID = UUID.randomUUID()
         def thirdUUID = UUID.randomUUID()
         bluetoothDeviceDiscovered deviceMac: "AA:AA:AA:AA:AA:AA", rssi: 0, scanRecord: [] as byte[]
-        uuidParserSpy.extractUUIDs(_) >> [filter, secondUUID, thirdUUID]
+        scanRecordParserSpy.extractUUIDs(_) >> [filter, secondUUID, thirdUUID]
 
         when:
         def testSubscriber = objectUnderTest.scanBleDevices([filter] as UUID[]).test()
@@ -512,6 +519,37 @@ class RxBleClientTest extends Specification {
     def "should provide injected background scanner"() {
         expect:
         backgroundScanner == objectUnderTest.getBackgroundScanner()
+    }
+
+    @Unroll
+    def "should pass call to CheckerLocationPermission when called .isScanRuntimePermissionGranted() and proxy back the result"() {
+
+        when:
+        def result = objectUnderTest.isScanRuntimePermissionGranted()
+
+        then:
+        1 * mockCheckerLocationPermission.isScanRuntimePermissionGranted() >> expectedResult
+
+        and:
+        result == expectedResult
+
+        where:
+        expectedResult << [true, false]
+    }
+
+    def "should pass call to CheckerLocationPermission when called .getRecommendedScanRuntimePermissions() and proxy back the result"() {
+
+        given:
+        String[] resultRef = new String[0]
+
+        when:
+        def result = objectUnderTest.getRecommendedScanRuntimePermissions()
+
+        then:
+        1 * mockCheckerLocationPermission.getRecommendedScanRuntimePermissions() >> resultRef
+
+        and:
+        result == resultRef
     }
 
     def waitForThreadsToCompleteWork() {

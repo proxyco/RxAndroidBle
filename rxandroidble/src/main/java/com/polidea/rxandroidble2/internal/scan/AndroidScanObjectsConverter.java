@@ -38,7 +38,7 @@ public class AndroidScanObjectsConverter {
     }
 
     @RequiresApi(23 /* Build.VERSION_CODES.M */)
-    private void setMarshmallowSettings(ScanSettings scanSettings, android.bluetooth.le.ScanSettings.Builder builder) {
+    private static void setMarshmallowSettings(ScanSettings scanSettings, android.bluetooth.le.ScanSettings.Builder builder) {
         builder
                 .setCallbackType(scanSettings.getCallbackType())
                 .setMatchMode(scanSettings.getMatchMode())
@@ -62,13 +62,15 @@ public class AndroidScanObjectsConverter {
     }
 
     @RequiresApi(21 /* Build.VERSION_CODES.LOLLIPOP */)
-    private android.bluetooth.le.ScanFilter toNative(ScanFilter scanFilter) {
+    private static android.bluetooth.le.ScanFilter toNative(ScanFilter scanFilter) {
         final android.bluetooth.le.ScanFilter.Builder builder = new android.bluetooth.le.ScanFilter.Builder();
         if (scanFilter.getServiceDataUuid() != null) {
             builder.setServiceData(scanFilter.getServiceDataUuid(), scanFilter.getServiceData(), scanFilter.getServiceDataMask());
         }
+        if (scanFilter.getDeviceAddress() != null) {
+            builder.setDeviceAddress(scanFilter.getDeviceAddress());
+        }
         return builder
-                .setDeviceAddress(scanFilter.getDeviceAddress())
                 .setDeviceName(scanFilter.getDeviceName())
                 .setManufacturerData(scanFilter.getManufacturerId(), scanFilter.getManufacturerData(), scanFilter.getManufacturerDataMask())
                 .setServiceUuid(scanFilter.getServiceUuid(), scanFilter.getServiceUuidMask())

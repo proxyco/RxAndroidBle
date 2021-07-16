@@ -4,6 +4,7 @@ import android.bluetooth.BluetoothGattCharacteristic;
 import androidx.annotation.NonNull;
 
 import com.polidea.rxandroidble2.RxBleConnection;
+import com.polidea.rxandroidble2.RxBleDeviceServices;
 import com.polidea.rxandroidble2.internal.operations.OperationsProvider;
 import com.polidea.rxandroidble2.internal.serialization.ConnectionOperationQueue;
 
@@ -12,20 +13,21 @@ import java.util.UUID;
 import bleshadow.javax.inject.Inject;
 import io.reactivex.Observable;
 import io.reactivex.Single;
+import io.reactivex.SingleSource;
 import io.reactivex.functions.Function;
 
 public final class LongWriteOperationBuilderImpl implements RxBleConnection.LongWriteOperationBuilder {
 
-    private final ConnectionOperationQueue operationQueue;
+    final ConnectionOperationQueue operationQueue;
     private final RxBleConnection rxBleConnection;
-    private final OperationsProvider operationsProvider;
+    final OperationsProvider operationsProvider;
 
     private Single<BluetoothGattCharacteristic> writtenCharacteristicObservable;
-    private PayloadSizeLimitProvider maxBatchSizeProvider;
-    private RxBleConnection.WriteOperationAckStrategy writeOperationAckStrategy = new ImmediateSerializedBatchAckStrategy();
-    private RxBleConnection.WriteOperationRetryStrategy writeOperationRetryStrategy = new NoRetryStrategy();
+    PayloadSizeLimitProvider maxBatchSizeProvider;
+    RxBleConnection.WriteOperationAckStrategy writeOperationAckStrategy = new ImmediateSerializedBatchAckStrategy();
+    RxBleConnection.WriteOperationRetryStrategy writeOperationRetryStrategy = new NoRetryStrategy();
 
-    private byte[] bytes;
+    byte[] bytes;
 
     @Inject
     LongWriteOperationBuilderImpl(
@@ -48,7 +50,13 @@ public final class LongWriteOperationBuilderImpl implements RxBleConnection.Long
 
     @Override
     public RxBleConnection.LongWriteOperationBuilder setCharacteristicUuid(@NonNull final UUID uuid) {
-        this.writtenCharacteristicObservable = rxBleConnection.getCharacteristic(uuid);
+        this.writtenCharacteristicObservable = rxBleConnection.discoverServices().flatMap(new Function<RxBleDeviceServices, SingleSource<
+                ? extends BluetoothGattCharacteristic>>() {
+            @Override
+            public SingleSource<? extends BluetoothGattCharacteristic> apply(RxBleDeviceServices rxBleDeviceServices) throws Exception {
+                return rxBleDeviceServices.getCharacteristic(uuid);
+            }
+        });
         return this;
     }
 

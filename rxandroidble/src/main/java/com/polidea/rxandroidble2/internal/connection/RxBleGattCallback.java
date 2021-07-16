@@ -36,20 +36,20 @@ import java.util.concurrent.TimeUnit;
 public class RxBleGattCallback {
 
     private final Scheduler callbackScheduler;
-    private final BluetoothGattProvider bluetoothGattProvider;
-    private final DisconnectionRouter disconnectionRouter;
-    private final NativeCallbackDispatcher nativeCallbackDispatcher;
-    private final PublishRelay<RxBleConnectionState> connectionStatePublishRelay = PublishRelay.create();
-    private final Output<RxBleDeviceServices> servicesDiscoveredOutput = new Output<>();
-    private final Output<ByteAssociation<UUID>> readCharacteristicOutput = new Output<>();
-    private final Output<ByteAssociation<UUID>> writeCharacteristicOutput = new Output<>();
-    private final Relay<CharacteristicChangedEvent>
+    final BluetoothGattProvider bluetoothGattProvider;
+    final DisconnectionRouter disconnectionRouter;
+    final NativeCallbackDispatcher nativeCallbackDispatcher;
+    final PublishRelay<RxBleConnectionState> connectionStatePublishRelay = PublishRelay.create();
+    final Output<RxBleDeviceServices> servicesDiscoveredOutput = new Output<>();
+    final Output<ByteAssociation<UUID>> readCharacteristicOutput = new Output<>();
+    final Output<ByteAssociation<UUID>> writeCharacteristicOutput = new Output<>();
+    final Relay<CharacteristicChangedEvent>
             changedCharacteristicSerializedPublishRelay = PublishRelay.<CharacteristicChangedEvent>create().toSerialized();
-    private final Output<ByteAssociation<BluetoothGattDescriptor>> readDescriptorOutput = new Output<>();
-    private final Output<ByteAssociation<BluetoothGattDescriptor>> writeDescriptorOutput = new Output<>();
-    private final Output<Integer> readRssiOutput = new Output<>();
-    private final Output<Integer> changedMtuOutput = new Output<>();
-    private final Output<ConnectionParameters> updatedConnectionOutput = new Output<>();
+    final Output<ByteAssociation<BluetoothGattDescriptor>> readDescriptorOutput = new Output<>();
+    final Output<ByteAssociation<BluetoothGattDescriptor>> writeDescriptorOutput = new Output<>();
+    final Output<Integer> readRssiOutput = new Output<>();
+    final Output<Integer> changedMtuOutput = new Output<>();
+    final Output<ConnectionParameters> updatedConnectionOutput = new Output<>();
     private final Function<BleGattException, Observable<?>> errorMapper = new Function<BleGattException, Observable<?>>() {
         @Override
         public Observable<?> apply(BleGattException bleGattException) {
@@ -220,7 +220,7 @@ public class RxBleGattCallback {
         }
     };
 
-    private RxBleConnectionState mapConnectionStateToRxBleConnectionStatus(int newState) {
+    static RxBleConnectionState mapConnectionStateToRxBleConnectionStatus(int newState) {
 
         switch (newState) {
             case BluetoothGatt.STATE_CONNECTING:
@@ -234,7 +234,7 @@ public class RxBleGattCallback {
         }
     }
 
-    private boolean propagateErrorIfOccurred(
+    static boolean propagateErrorIfOccurred(
             Output<?> output,
             BluetoothGatt gatt,
             BluetoothGattCharacteristic characteristic,
@@ -249,7 +249,7 @@ public class RxBleGattCallback {
         ));
     }
 
-    private boolean propagateErrorIfOccurred(
+    static boolean propagateErrorIfOccurred(
             Output<?> output,
             BluetoothGatt gatt,
             BluetoothGattDescriptor descriptor,
@@ -264,21 +264,21 @@ public class RxBleGattCallback {
         ));
     }
 
-    private boolean propagateErrorIfOccurred(Output<?> output, BluetoothGatt gatt, int status, BleGattOperationType operationType) {
+    static boolean propagateErrorIfOccurred(Output<?> output, BluetoothGatt gatt, int status, BleGattOperationType operationType) {
         return isException(status) && propagateStatusError(output, new BleGattException(gatt, status, operationType));
     }
 
-    private boolean isException(int status) {
+    private static boolean isException(int status) {
         return status != BluetoothGatt.GATT_SUCCESS;
     }
 
-    private boolean propagateStatusError(Output<?> output, BleGattException exception) {
+    private static boolean propagateStatusError(Output<?> output, BleGattException exception) {
         output.errorRelay.accept(exception);
         return true;
     }
 
+    @SuppressWarnings("unchecked")
     private <T> Observable<T> withDisconnectionHandling(Output<T> output) {
-        //noinspection unchecked
         return Observable.merge(
                 disconnectionRouter.<T>asErrorOnlyObservable(),
                 output.valueRelay,
