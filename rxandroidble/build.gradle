@@ -50,8 +50,8 @@ androidGroovy {
 dependencies {
     api rootProject.ext.libs.rxjava
     api rootProject.ext.libs.annotations
-    implementation rootProject.ext.libs.rxrelay
-    implementation project(path: ':dagger-library-shadow', transitive: false, configuration: 'shadow')
+    api rootProject.ext.libs.rxrelay
+    api project(path: ':dagger-library-shadow', transitive: false, configuration: 'shadow')
     annotationProcessor project(path: ':dagger-compiler-shadow', transitive: false, configuration: 'shadow')
 
     // Test dependencies
